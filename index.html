@@ -171,14 +171,20 @@
 <body>
 
     <header>
-        <h1><span>▶</span> SmartTube</h1>
+        <h1 id="main-title"><span>▶</span> SmartTube</h1>
+        <button id="back-btn" onclick="showChannelsView()" style="display:none; padding: 10px 20px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 1.1rem; font-weight: bold; margin-top: 15px;">🔙 العودة للقنوات</button>
     </header>
 
-    <div class="channel-title">جاري الاتصال بالقناة...</div>
+    <div class="channel-title" id="status-title">اختر القناة للمشاهدة</div>
+
+    <!-- شبكة القنوات -->
+    <div class="video-grid" id="channels-grid">
+        <!-- سيتم توليد كروت القنوات من الجافاسكريبت -->
+    </div>
 
     <!-- شبكة الفيديوهات -->
-    <div class="video-grid" id="grid">
-        <!-- سيتم توليد الكروت من الجافاسكريبت -->
+    <div class="video-grid" id="videos-grid" style="display:none;">
+        <!-- سيتم توليد الفيديوهات هنا -->
     </div>
 
     <!-- شاشة تشغيل الفيديو -->
@@ -187,88 +193,91 @@
         <div id="player-container"></div>
     </div>
 
-    <!-- استدعاء مكتبة يوتيوب الرسمية للمشغل المدمج (IFrame Player API) -->
+    <!-- استدعاء مكتبة يوتيوب -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         // 💡💡 قائمة القنوات المسموحة 💡💡
-        // يمكنك إضافة أو حذف أي قناة بوضع الـ ID الخاص بها هنا
-        const allowedChannels = [
-            'UCx9R02FLwmLOIr0ViM_M2Bw', // عائلة مشيع
-            'UCiZL26ScfRZDdEAkkPJgJbA', // عمر وهنا
-            'UC5PYHgAzJ1wLEidB58SK6Xw'  // بليبي بالعربي (Blippi Arabic)
+        const channels = [
+            { id: 'UCx9R02FLwmLOIr0ViM_M2Bw', name: 'عائلة مشيع', color: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+            { id: 'UCiZL26ScfRZDdEAkkPJgJbA', name: 'عمر وهنا', color: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+            { id: 'UC5PYHgAzJ1wLEidB58SK6Xw', name: 'بليبي بالعربي', color: 'linear-gradient(135deg, #10b981, #059669)' }
         ];
         
-        let cleanVideos = [];
-
-        async function fetchChannelVideos() {
-            try {
-                // عمل مصفوفة من الطلبات (Fetch Requests) لكل القنوات
-                const fetchPromises = allowedChannels.map(channelId => {
-                    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-                    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-                    return fetch(apiUrl).then(res => res.json());
-                });
-
-                // الانتظار حتى يتم سحب الفيديوهات من كل القنوات معاً
-                const results = await Promise.all(fetchPromises);
-                
-                let allItems = [];
-                results.forEach(data => {
-                    if (data.status === 'ok') {
-                        allItems = allItems.concat(data.items);
-                    }
-                });
-
-                // ترتيب الفيديوهات من الأحدث للأقدم بناءً على تاريخ النشر
-                allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-
-                // تصفية الفيديوهات لاستبعاد (الشورتس Shorts) وإبقاء الفيديوهات الطويلة فقط
-                const longVideosOnly = allItems.filter(item => {
-                    const linkStr = item.link || "";
-                    return !linkStr.includes('shorts/');
-                });
-
-                cleanVideos = longVideosOnly.map(item => {
-                    // الآيدي موجود في guid بصيغة yt:video:ID
-                    let videoId = "";
-                    if (item.guid && item.guid.includes('yt:video:')) {
-                        videoId = item.guid.split('yt:video:')[1];
-                    } else {
-                        const linkStr = item.link || "";
-                        if (linkStr.includes('v=')) videoId = linkStr.split('v=')[1];
-                        const amp = videoId.indexOf('&');
-                        if (amp !== -1) videoId = videoId.substring(0, amp);
-                    }
-                    
-                    return { id: videoId, title: item.title };
-                });
-                
-                const titleEl = document.querySelector('.channel-title');
-                if(titleEl) {
-                    titleEl.innerText = `أحدث الفيديوهات الآمنة المختارة (${cleanVideos.length} فيديو)`;
-                }
-                renderVideos();
-
-            } catch (error) {
-                console.error('Error fetching videos:', error);
-            }
-        }
-        const grid = document.getElementById('grid');
+        let currentVideos = [];
         let player = null;
 
-        fetchChannelVideos();
+        const channelsGrid = document.getElementById('channels-grid');
+        const videosGrid = document.getElementById('videos-grid');
+        const statusTitle = document.getElementById('status-title');
+        const backBtn = document.getElementById('back-btn');
 
-        // 2. دالة لإنشاء كروت الفيديوهات في الشاشة
+        // 1. عرض القنوات
+        function renderChannels() {
+            let html = '';
+            channels.forEach(channel => {
+                html += `
+                    <div class="video-card" tabindex="0" onclick="openChannel('${channel.id}', '${channel.name}')" style="background: ${channel.color}; display: flex; align-items: center; justify-content: center; height: 200px;">
+                        <h2 style="color: white; font-size: 2rem; font-weight: 800; text-shadow: 0 4px 6px rgba(0,0,0,0.3);">${channel.name}</h2>
+                    </div>
+                `;
+            });
+            channelsGrid.innerHTML = html;
+        }
+
+        // 2. الدخول للقناة وسحب فيديوهاتها
+        async function openChannel(channelId, channelName) {
+            channelsGrid.style.display = 'none';
+            videosGrid.style.display = 'grid';
+            backBtn.style.display = 'block';
+            statusTitle.innerText = `جاري الاتصال بقناة ${channelName}...`;
+            videosGrid.innerHTML = '';
+
+            const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    // تصفية الشورتس
+                    const longVideosOnly = data.items.filter(item => {
+                        const linkStr = item.link || "";
+                        return !linkStr.includes('shorts/');
+                    });
+
+                    currentVideos = longVideosOnly.map(item => {
+                        let videoId = "";
+                        if (item.guid && item.guid.includes('yt:video:')) {
+                            videoId = item.guid.split('yt:video:')[1];
+                        } else {
+                            const linkStr = item.link || "";
+                            if (linkStr.includes('v=')) videoId = linkStr.split('v=')[1];
+                            const amp = videoId.indexOf('&');
+                            if (amp !== -1) videoId = videoId.substring(0, amp);
+                        }
+                        return { id: videoId, title: item.title };
+                    });
+                    
+                    statusTitle.innerText = `قناة: ${channelName}`;
+                    renderVideos();
+                } else {
+                    statusTitle.innerText = `عذراً، حدث خطأ أثناء الاتصال بالقناة.`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                statusTitle.innerText = `تأكد من اتصالك بالإنترنت.`;
+            }
+        }
+
+        // 3. عرض فيديوهات القناة المختارة
         function renderVideos() {
             let html = '';
-            cleanVideos.forEach((video, index) => {
-                // جلب صورة المصغرة بأعلى جودة من سيرفرات يوتيوب مباشرة
+            currentVideos.forEach(video => {
                 const thumbUrl = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
-                
-                // يتم إضافة tabindex="0" لجعل الكرت قابل للتحديد بالريموت كنترول (Smart TV)
                 html += `
-                    <div class="video-card" tabindex="0" onclick="openPlayer('${video.id}')" onkeypress="handleKeyPress(event, '${video.id}')">
+                    <div class="video-card" tabindex="0" onclick="openPlayer('${video.id}')">
                         <div class="thumbnail" style="background-image: url('${thumbUrl}');"></div>
                         <div class="video-info">
                             <div class="video-title">${video.title}</div>
@@ -276,37 +285,35 @@
                     </div>
                 `;
             });
-            grid.innerHTML = html;
+            videosGrid.innerHTML = html;
         }
 
-        // 3. دعم الريموت كنترول (TV) والكيبورد للضغط على "Enter"
-        function handleKeyPress(event, videoId) {
-            if (event.key === 'Enter') {
-                openPlayer(videoId);
-            }
+        // 4. زر العودة
+        function showChannelsView() {
+            videosGrid.style.display = 'none';
+            backBtn.style.display = 'none';
+            channelsGrid.style.display = 'grid';
+            statusTitle.innerText = 'اختر القناة للمشاهدة';
         }
 
-        // 4. تشغيل الفيديو في المشغل المغلق والمقيد
+        // 5. المشغل
         function openPlayer(videoId) {
             const overlay = document.getElementById('player-overlay');
             overlay.style.display = 'flex';
 
-            // إذا كان المشغل موجوداً مسبقاً، نقوم بتغيير الفيديو فقط
             if (player) {
                 player.loadVideoById(videoId);
             } else {
-                // إنشاء مشغل يوتيوب النظيف
                 player = new YT.Player('player-container', {
                     videoId: videoId,
                     playerVars: {
-                        'autoplay': 1,      // تشغيل تلقائي
-                        'rel': 0,           // الأهم!: عدم إظهار فيديوهات مقترحة من قنوات أخرى في النهاية
-                        'modestbranding': 1, // إخفاء لوجو يوتيوب قدر الإمكان
-                        'fs': 1,            // زر ملء الشاشة
-                        'controls': 1       // إظهار شريط التحكم
+                        'autoplay': 1,      
+                        'rel': 0,           
+                        'modestbranding': 1,
+                        'fs': 1,            
+                        'controls': 1       
                     },
                     events: {
-                        // عند انتهاء الفيديو، يمكننا برمجته ليغلق الشاشة تلقائياً 
                         'onStateChange': function(event) {
                             if (event.data === YT.PlayerState.ENDED) {
                                 closePlayer();
