@@ -191,49 +191,65 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
-        // 1. الداتا الديناميكية (سحب أحدث فيديوهات القناة تلقائياً)
+        // 💡💡 قائمة القنوات المسموحة 💡💡
+        // يمكنك إضافة أو حذف أي قناة بوضع الـ ID الخاص بها هنا
+        const allowedChannels = [
+            'UCx9R02FLwmLOIr0ViM_M2Bw', // عائلة مشيع
+            'UCiZL26ScfRZDdEAkkPJgJbA', // عمر وهنا
+            'UC5PYHgAzJ1wLEidB58SK6Xw'  // بليبي بالعربي (Blippi Arabic)
+        ];
         
-        // 💡💡 المكان المخصص لتغيير القناة 💡💡
-        // ضع (آيدي) القناة التي تريدها هنا. 
-        // القناة الحالية: عائلة مشيع (OurFamilyLifeJO)
-        const channelId = 'UCx9R02FLwmLOIr0ViM_M2Bw'; 
-        
-        const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
         let cleanVideos = [];
 
         async function fetchChannelVideos() {
             try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                if (data.status === 'ok') {
-                    // تصفية الفيديوهات لاستبعاد (الشورتس Shorts) وإبقاء الفيديوهات الطويلة فقط
-                    const longVideosOnly = data.items.filter(item => {
-                        const linkStr = item.link || "";
-                        return !linkStr.includes('shorts/');
-                    });
+                // عمل مصفوفة من الطلبات (Fetch Requests) لكل القنوات
+                const fetchPromises = allowedChannels.map(channelId => {
+                    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+                    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+                    return fetch(apiUrl).then(res => res.json());
+                });
 
-                    cleanVideos = longVideosOnly.map(item => {
-                        // الآيدي موجود في guid بصيغة yt:video:ID
-                        let videoId = "";
-                        if (item.guid && item.guid.includes('yt:video:')) {
-                            videoId = item.guid.split('yt:video:')[1];
-                        } else {
-                            const linkStr = item.link || "";
-                            if (linkStr.includes('v=')) videoId = linkStr.split('v=')[1];
-                            const amp = videoId.indexOf('&');
-                            if (amp !== -1) videoId = videoId.substring(0, amp);
-                        }
-                        
-                        return { id: videoId, title: item.title };
-                    });
-                    
-                    const titleEl = document.querySelector('.channel-title');
-                    if(titleEl && data.feed && data.feed.title) {
-                        titleEl.innerText = `أحدث الفيديوهات من قناة: ${data.feed.title}`;
+                // الانتظار حتى يتم سحب الفيديوهات من كل القنوات معاً
+                const results = await Promise.all(fetchPromises);
+                
+                let allItems = [];
+                results.forEach(data => {
+                    if (data.status === 'ok') {
+                        allItems = allItems.concat(data.items);
                     }
-                    renderVideos();
+                });
+
+                // ترتيب الفيديوهات من الأحدث للأقدم بناءً على تاريخ النشر
+                allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+                // تصفية الفيديوهات لاستبعاد (الشورتس Shorts) وإبقاء الفيديوهات الطويلة فقط
+                const longVideosOnly = allItems.filter(item => {
+                    const linkStr = item.link || "";
+                    return !linkStr.includes('shorts/');
+                });
+
+                cleanVideos = longVideosOnly.map(item => {
+                    // الآيدي موجود في guid بصيغة yt:video:ID
+                    let videoId = "";
+                    if (item.guid && item.guid.includes('yt:video:')) {
+                        videoId = item.guid.split('yt:video:')[1];
+                    } else {
+                        const linkStr = item.link || "";
+                        if (linkStr.includes('v=')) videoId = linkStr.split('v=')[1];
+                        const amp = videoId.indexOf('&');
+                        if (amp !== -1) videoId = videoId.substring(0, amp);
+                    }
+                    
+                    return { id: videoId, title: item.title };
+                });
+                
+                const titleEl = document.querySelector('.channel-title');
+                if(titleEl) {
+                    titleEl.innerText = `أحدث الفيديوهات الآمنة المختارة (${cleanVideos.length} فيديو)`;
                 }
+                renderVideos();
+
             } catch (error) {
                 console.error('Error fetching videos:', error);
             }
