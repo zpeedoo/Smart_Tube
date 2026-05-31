@@ -238,12 +238,9 @@
             channelsGrid.innerHTML = html;
         }
 
-        // فتح قناة تيليجرام
+        // فتح قناة تيليجرام في تبويب جديد
         function openTelegram(channelId, channelName) {
-            const overlay = document.getElementById('telegram-overlay');
-            const frame = document.getElementById('telegram-frame');
-            frame.src = `https://t.me/s/${channelId}`;
-            overlay.style.display = 'flex';
+            window.open(`https://t.me/s/${channelId}`, '_blank');
         }
 
         function closeTelegram() {
