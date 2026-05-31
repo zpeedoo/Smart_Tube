@@ -218,8 +218,25 @@
         
         let currentVideos = [];
         let player = null;
-        // تخزين مؤقت لصور القنوات
         const channelAvatars = {};
+
+        // نظام تتبع الفيديوهات المشاهدة (يُحفظ في ذاكرة المتصفح)
+        function getWatched() {
+            return JSON.parse(localStorage.getItem('smarttube_watched') || '[]');
+        }
+        function markWatched(videoId) {
+            const watched = getWatched();
+            if (!watched.includes(videoId)) {
+                watched.push(videoId);
+                localStorage.setItem('smarttube_watched', JSON.stringify(watched));
+            }
+        }
+        function resetWatched() {
+            if (confirm('هل تريد إعادة تعيين قائمة المشاهدة؟ ستظهر كل الفيديوهات من جديد.')) {
+                localStorage.removeItem('smarttube_watched');
+                alert('✅ تم إعادة التعيين! افتح أي قناة لترى كل الفيديوهات.');
+            }
+        }
 
         const channelsGrid = document.getElementById('channels-grid');
         const videosGrid = document.getElementById('videos-grid');
@@ -323,7 +340,8 @@
                 const data = await response.json();
                 
                 if (data.status === 'ok') {
-                    currentVideos = data.items.map(item => {
+                    const watched = getWatched();
+                    const allVideos = data.items.map(item => {
                         let videoId = "";
                         if (item.guid && item.guid.includes('yt:video:')) {
                             videoId = item.guid.split('yt:video:')[1];
@@ -335,9 +353,18 @@
                         }
                         return { id: videoId, title: item.title };
                     });
-                    
-                    statusTitle.innerText = `قناة: ${channelName}`;
-                    renderVideos();
+
+                    // استبعاد الفيديوهات المشاهدة مسبقاً
+                    currentVideos = allVideos.filter(v => !watched.includes(v.id));
+                    const watchedCount = allVideos.length - currentVideos.length;
+                    const suffix = watchedCount > 0 ? ` (شاهدت ${watchedCount} فيديو)` : '';
+                    statusTitle.innerText = `قناة: ${channelName}${suffix}`;
+
+                    if (currentVideos.length === 0) {
+                        videosGrid.innerHTML = `<div style="color:#aaa;padding:60px;font-size:1.3rem;text-align:center;">🎉 شاهدت كل الفيديوهات!<br><br><button onclick="resetWatched()" style="margin-top:20px;padding:12px 30px;background:#e74c3c;color:white;border:none;border-radius:10px;font-size:1rem;cursor:pointer;font-family:inherit;">🔄 إعادة تعيين القائمة</button></div>`;
+                    } else {
+                        renderVideos();
+                    }
                 } else {
                     statusTitle.innerText = `عذراً، حدث خطأ أثناء الاتصال بالقناة.`;
                 }
@@ -378,6 +405,8 @@
         function openPlayer(videoId) {
             // نحدد موضع الفيديو في القائمة
             currentVideoIndex = currentVideos.findIndex(v => v.id === videoId);
+            // نضيف الفيديو لقائمة المشاهدة فوراً
+            markWatched(videoId);
             
             const overlay = document.getElementById('player-overlay');
             overlay.style.display = 'flex';
