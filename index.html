@@ -241,13 +241,7 @@
                 const data = await response.json();
                 
                 if (data.status === 'ok') {
-                    // تصفية الشورتس
-                    const longVideosOnly = data.items.filter(item => {
-                        const linkStr = item.link || "";
-                        return !linkStr.includes('shorts/');
-                    });
-
-                    currentVideos = longVideosOnly.map(item => {
+                    currentVideos = data.items.map(item => {
                         let videoId = "";
                         if (item.guid && item.guid.includes('yt:video:')) {
                             videoId = item.guid.split('yt:video:')[1];
