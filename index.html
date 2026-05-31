@@ -193,15 +193,22 @@
         <div id="player-container"></div>
     </div>
 
+    <!-- شاشة عرض تيليجرام -->
+    <div id="telegram-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#17212b; z-index:100; flex-direction:column;">
+        <button onclick="closeTelegram()" style="position:absolute; top:20px; right:20px; background:rgba(0,136,204,0.9); color:white; border:none; border-radius:50%; width:55px; height:55px; font-size:1.5rem; cursor:pointer; z-index:101; font-weight:bold;">✕</button>
+        <iframe id="telegram-frame" src="" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
+
     <!-- استدعاء مكتبة يوتيوب -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         // 💡💡 قائمة القنوات المسموحة 💡💡
         const channels = [
-            { id: 'UCx9R02FLwmLOIr0ViM_M2Bw', name: 'عائلة مشيع', color: 'linear-gradient(135deg, #f59e0b, #d97706)' },
-            { id: 'UCiZL26ScfRZDdEAkkPJgJbA', name: 'عمر وهنا', color: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
-            { id: 'UC5PYHgAzJ1wLEidB58SK6Xw', name: 'بليبي بالعربي', color: 'linear-gradient(135deg, #10b981, #059669)' }
+            { type: 'youtube', id: 'UCx9R02FLwmLOIr0ViM_M2Bw', name: 'عائلة مشيع', icon: '🏠', color: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+            { type: 'youtube', id: 'UCiZL26ScfRZDdEAkkPJgJbA', name: 'عمر وهنا', icon: '🌙', color: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+            { type: 'youtube', id: 'UC5PYHgAzJ1wLEidB58SK6Xw', name: 'بليبي بالعربي', icon: '🔵', color: 'linear-gradient(135deg, #10b981, #059669)' },
+            { type: 'telegram', id: 'Basem4aflamcartoooon', name: 'افلام ديزني بالعربي', icon: '🎬', color: 'linear-gradient(135deg, #0088cc, #005f8f)' }
         ];
         
         let currentVideos = [];
@@ -216,13 +223,34 @@
         function renderChannels() {
             let html = '';
             channels.forEach(channel => {
+                const action = channel.type === 'telegram'
+                    ? `openTelegram('${channel.id}', '${channel.name}')`
+                    : `openChannel('${channel.id}', '${channel.name}')`;
+                const badge = channel.type === 'telegram' ? '<span style="font-size:0.8rem; background:rgba(255,255,255,0.2); padding:3px 10px; border-radius:20px; margin-top:5px;">تيليجرام</span>' : '<span style="font-size:0.8rem; background:rgba(255,255,255,0.2); padding:3px 10px; border-radius:20px; margin-top:5px;">يوتيوب</span>';
                 html += `
-                    <div class="video-card" tabindex="0" onclick="openChannel('${channel.id}', '${channel.name}')" style="background: ${channel.color}; display: flex; align-items: center; justify-content: center; height: 200px;">
-                        <h2 style="color: white; font-size: 2rem; font-weight: 800; text-shadow: 0 4px 6px rgba(0,0,0,0.3);">${channel.name}</h2>
+                    <div class="video-card" tabindex="0" onclick="${action}" style="background: ${channel.color}; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; gap: 8px;">
+                        <div style="font-size: 2.5rem;">${channel.icon}</div>
+                        <h2 style="color: white; font-size: 1.6rem; font-weight: 800; text-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align:center;">${channel.name}</h2>
+                        ${badge}
                     </div>
                 `;
             });
             channelsGrid.innerHTML = html;
+        }
+
+        // فتح قناة تيليجرام
+        function openTelegram(channelId, channelName) {
+            const overlay = document.getElementById('telegram-overlay');
+            const frame = document.getElementById('telegram-frame');
+            frame.src = `https://t.me/s/${channelId}`;
+            overlay.style.display = 'flex';
+        }
+
+        function closeTelegram() {
+            const overlay = document.getElementById('telegram-overlay');
+            const frame = document.getElementById('telegram-frame');
+            overlay.style.display = 'none';
+            frame.src = '';
         }
 
         // 2. الدخول للقناة وسحب فيديوهاتها
