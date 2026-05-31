@@ -206,13 +206,14 @@
         // 💡💡 قائمة القنوات المسموحة - أضف أو احذف هنا 💡💡
         const channels = [
             { type: 'youtube', id: 'UCx9R02FLwmLOIr0ViM_M2Bw', name: 'عائلة مشيع' },
-            { type: 'youtube', id: 'UCiZL26ScfRZDdEAkkPJgJbA', name: 'عمر وهنا - عربي' },
+            { type: 'youtube', id: 'UCr3XqrfFHRy25Dcrm7RVD0w', name: 'عمر وهنا - عربي' },
             { type: 'youtube', id: 'UCu7WS26vJdvMwHajtXoijSQ', name: 'بليبي بالعربي' },
             { type: 'youtube', id: 'UChOQ_YphUJTEczNXMrUoucg', name: 'تام تام' },
             { type: 'youtube', id: 'UCoxoYSL3rFXB7JSELiI5V1w', name: 'فلاد ونيكي عربي' },
             { type: 'youtube', id: 'UCWIdqSQekeGmUWlSFeCiEnA', name: 'أسرتنا' },
             { type: 'youtube', id: 'UCO_NkEoZ0oJh19HJOVe72Sg', name: 'سبيستون' },
-            { type: 'telegram', id: 'Basem4aflamcartoooon', name: 'افلام ديزني بالعربي' }
+            { type: 'telegram', id: 'Basem4aflamcartoooon', name: 'افلام ديزني بالعربي' },
+            { type: 'drive', id: '1DSVCdt0uMhq6HECmJl8EGNJVKz9rYJUP', name: 'مكتبة الأفلام 🎬', thumb: 'https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png' }
         ];
         
         let currentVideos = [];
@@ -225,17 +226,16 @@
         const statusTitle = document.getElementById('status-title');
         const backBtn = document.getElementById('back-btn');
 
-        // 1. جلب صورة القناة من أول فيديو لها ثم رسم الكرت
+        // 1. جلب صورة القناة
         async function loadChannelAvatar(channel) {
-            if (channel.type === 'telegram') {
-                return '🎬'; // تيليجرام يستخدم إيموجي
+            if (channel.type === 'telegram' || channel.type === 'drive') {
+                return channel.thumb || null;
             }
             try {
                 const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.id}`;
                 const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
                 const data = await fetch(apiUrl).then(r => r.json());
                 if (data.status === 'ok' && data.items && data.items[0]) {
-                    // نأخذ صورة مصغرة من أول فيديو بجودة عالية
                     const firstVideoId = data.items[0].guid.split('yt:video:')[1];
                     return `https://img.youtube.com/vi/${firstVideoId}/mqdefault.jpg`;
                 }
@@ -246,30 +246,42 @@
         async function renderChannels() {
             channelsGrid.innerHTML = '<div style="color:#aaa; padding:40px; font-size:1.2rem;">جاري تحميل القنوات...</div>';
             
-            // جلب صور كل القنوات معاً بشكل متوازٍ
             const avatarPromises = channels.map(ch => loadChannelAvatar(ch));
             const avatars = await Promise.all(avatarPromises);
 
             let html = '';
             channels.forEach((channel, i) => {
                 const avatar = avatars[i];
-                const action = channel.type === 'telegram'
-                    ? `openTelegram('${channel.id}', '${channel.name}')`
-                    : `openChannel('${channel.id}', '${channel.name}')`;
-                const badge = channel.type === 'telegram'
-                    ? '<span style="font-size:0.75rem;background:rgba(0,136,204,0.8);padding:3px 10px;border-radius:20px;color:white;">تيليجرام</span>'
-                    : '<span style="font-size:0.75rem;background:rgba(255,0,0,0.7);padding:3px 10px;border-radius:20px;color:white;">يوتيوب</span>';
 
-                const bgStyle = avatar && typeof avatar === 'string' && avatar.startsWith('http')
-                    ? `background-image: url('${avatar}'); background-size: cover; background-position: center;`
-                    : `background: linear-gradient(135deg, #333, #555);`;
+                let action, badge, bgStyle;
+
+                if (channel.type === 'telegram') {
+                    action = `openTelegram('${channel.id}')`;
+                    badge = '<span style="font-size:0.75rem;background:rgba(0,136,204,0.9);padding:4px 12px;border-radius:20px;color:white;font-weight:bold;">تيليجرام</span>';
+                } else if (channel.type === 'drive') {
+                    action = `openDrive('${channel.id}')`;
+                    badge = '<span style="font-size:0.75rem;background:rgba(66,133,244,0.9);padding:4px 12px;border-radius:20px;color:white;font-weight:bold;">Google Drive</span>';
+                } else {
+                    action = `openChannel('${channel.id}', '${channel.name}')`;
+                    badge = '<span style="font-size:0.75rem;background:rgba(255,0,0,0.8);padding:4px 12px;border-radius:20px;color:white;font-weight:bold;">يوتيوب</span>';
+                }
+
+                if (avatar && avatar.startsWith('http')) {
+                    bgStyle = `background-image: url('${avatar}'); background-size: cover; background-position: center;`;
+                } else if (channel.type === 'drive') {
+                    bgStyle = `background: linear-gradient(135deg, #1a73e8, #0d47a1);`;
+                } else if (channel.type === 'telegram') {
+                    bgStyle = `background: linear-gradient(135deg, #0088cc, #005f8f);`;
+                } else {
+                    bgStyle = `background: linear-gradient(135deg, #333, #555);`;
+                }
 
                 html += `
                     <div class="video-card" tabindex="0" onclick="${action}" style="position:relative; overflow:hidden; height:200px;">
                         <div style="position:absolute;inset:0; ${bgStyle}"></div>
-                        <div style="position:absolute;inset:0; background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);"></div>
+                        <div style="position:absolute;inset:0; background:linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);"></div>
                         <div style="position:absolute;bottom:0;left:0;right:0;padding:15px;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                            <h2 style="color:white;font-size:1.3rem;font-weight:800;text-shadow:0 2px 4px rgba(0,0,0,0.8);text-align:center;">${channel.name}</h2>
+                            <h2 style="color:white;font-size:1.25rem;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,0.9);text-align:center;">${channel.name}</h2>
                             ${badge}
                         </div>
                     </div>
@@ -278,9 +290,14 @@
             channelsGrid.innerHTML = html;
         }
 
-        // فتح قناة تيليجرام في تبويب جديد
-        function openTelegram(channelId, channelName) {
+        // فتح قناة تيليجرام
+        function openTelegram(channelId) {
             window.open(`https://t.me/s/${channelId}`, '_blank');
+        }
+
+        // فتح مجلد Google Drive
+        function openDrive(folderId) {
+            window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
         }
 
         function closeTelegram() {
