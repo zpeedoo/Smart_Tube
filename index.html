@@ -372,8 +372,13 @@
             statusTitle.innerText = 'اختر القناة للمشاهدة';
         }
 
-        // 5. المشغل
+        // 5. المشغل - مع تشغيل الفيديو التالي تلقائياً
+        let currentVideoIndex = -1;
+
         function openPlayer(videoId) {
+            // نحدد موضع الفيديو في القائمة
+            currentVideoIndex = currentVideos.findIndex(v => v.id === videoId);
+            
             const overlay = document.getElementById('player-overlay');
             overlay.style.display = 'flex';
 
@@ -391,8 +396,9 @@
                     },
                     events: {
                         'onStateChange': function(event) {
+                            // عند انتهاء الفيديو → شغّل الفيديو التالي تلقائياً
                             if (event.data === YT.PlayerState.ENDED) {
-                                closePlayer();
+                                playNextVideo();
                             }
                         }
                     }
@@ -400,12 +406,24 @@
             }
         }
 
-        // 5. إغلاق المشغل
+        function playNextVideo() {
+            const nextIndex = currentVideoIndex + 1;
+            if (nextIndex < currentVideos.length) {
+                currentVideoIndex = nextIndex;
+                const nextVideo = currentVideos[nextIndex];
+                player.loadVideoById(nextVideo.id);
+            } else {
+                // وصلنا لآخر الفيديوهات → أغلق المشغل
+                closePlayer();
+            }
+        }
+
+        // 6. إغلاق المشغل
         function closePlayer() {
             const overlay = document.getElementById('player-overlay');
             overlay.style.display = 'none';
             if (player) {
-                player.stopVideo(); // إيقاف الفيديو عند الإغلاق
+                player.stopVideo();
             }
         }
 
