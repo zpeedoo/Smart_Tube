@@ -203,35 +203,75 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
-        // 💡💡 قائمة القنوات المسموحة 💡💡
+        // 💡💡 قائمة القنوات المسموحة - أضف أو احذف هنا 💡💡
         const channels = [
-            { type: 'youtube', id: 'UCx9R02FLwmLOIr0ViM_M2Bw', name: 'عائلة مشيع', icon: '🏠', color: 'linear-gradient(135deg, #f59e0b, #d97706)' },
-            { type: 'youtube', id: 'UCiZL26ScfRZDdEAkkPJgJbA', name: 'عمر وهنا - عربي', icon: '🌙', color: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
-            { type: 'youtube', id: 'UCu7WS26vJdvMwHajtXoijSQ', name: 'بليبي بالعربي', icon: '🔵', color: 'linear-gradient(135deg, #10b981, #059669)' },
-            { type: 'telegram', id: 'Basem4aflamcartoooon', name: 'افلام ديزني بالعربي', icon: '🎬', color: 'linear-gradient(135deg, #0088cc, #005f8f)' }
+            { type: 'youtube', id: 'UCx9R02FLwmLOIr0ViM_M2Bw', name: 'عائلة مشيع' },
+            { type: 'youtube', id: 'UCiZL26ScfRZDdEAkkPJgJbA', name: 'عمر وهنا - عربي' },
+            { type: 'youtube', id: 'UCu7WS26vJdvMwHajtXoijSQ', name: 'بليبي بالعربي' },
+            { type: 'youtube', id: 'UChOQ_YphUJTEczNXMrUoucg', name: 'تام تام' },
+            { type: 'youtube', id: 'UCoxoYSL3rFXB7JSELiI5V1w', name: 'فلاد ونيكي عربي' },
+            { type: 'youtube', id: 'UCWIdqSQekeGmUWlSFeCiEnA', name: 'أسرتنا' },
+            { type: 'youtube', id: 'UCO_NkEoZ0oJh19HJOVe72Sg', name: 'سبيستون' },
+            { type: 'telegram', id: 'Basem4aflamcartoooon', name: 'افلام ديزني بالعربي' }
         ];
         
         let currentVideos = [];
         let player = null;
+        // تخزين مؤقت لصور القنوات
+        const channelAvatars = {};
 
         const channelsGrid = document.getElementById('channels-grid');
         const videosGrid = document.getElementById('videos-grid');
         const statusTitle = document.getElementById('status-title');
         const backBtn = document.getElementById('back-btn');
 
-        // 1. عرض القنوات
-        function renderChannels() {
+        // 1. جلب صورة القناة من أول فيديو لها ثم رسم الكرت
+        async function loadChannelAvatar(channel) {
+            if (channel.type === 'telegram') {
+                return '🎬'; // تيليجرام يستخدم إيموجي
+            }
+            try {
+                const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.id}`;
+                const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+                const data = await fetch(apiUrl).then(r => r.json());
+                if (data.status === 'ok' && data.items && data.items[0]) {
+                    // نأخذ صورة مصغرة من أول فيديو بجودة عالية
+                    const firstVideoId = data.items[0].guid.split('yt:video:')[1];
+                    return `https://img.youtube.com/vi/${firstVideoId}/mqdefault.jpg`;
+                }
+            } catch(e) {}
+            return null;
+        }
+
+        async function renderChannels() {
+            channelsGrid.innerHTML = '<div style="color:#aaa; padding:40px; font-size:1.2rem;">جاري تحميل القنوات...</div>';
+            
+            // جلب صور كل القنوات معاً بشكل متوازٍ
+            const avatarPromises = channels.map(ch => loadChannelAvatar(ch));
+            const avatars = await Promise.all(avatarPromises);
+
             let html = '';
-            channels.forEach(channel => {
+            channels.forEach((channel, i) => {
+                const avatar = avatars[i];
                 const action = channel.type === 'telegram'
                     ? `openTelegram('${channel.id}', '${channel.name}')`
                     : `openChannel('${channel.id}', '${channel.name}')`;
-                const badge = channel.type === 'telegram' ? '<span style="font-size:0.8rem; background:rgba(255,255,255,0.2); padding:3px 10px; border-radius:20px; margin-top:5px;">تيليجرام</span>' : '<span style="font-size:0.8rem; background:rgba(255,255,255,0.2); padding:3px 10px; border-radius:20px; margin-top:5px;">يوتيوب</span>';
+                const badge = channel.type === 'telegram'
+                    ? '<span style="font-size:0.75rem;background:rgba(0,136,204,0.8);padding:3px 10px;border-radius:20px;color:white;">تيليجرام</span>'
+                    : '<span style="font-size:0.75rem;background:rgba(255,0,0,0.7);padding:3px 10px;border-radius:20px;color:white;">يوتيوب</span>';
+
+                const bgStyle = avatar && typeof avatar === 'string' && avatar.startsWith('http')
+                    ? `background-image: url('${avatar}'); background-size: cover; background-position: center;`
+                    : `background: linear-gradient(135deg, #333, #555);`;
+
                 html += `
-                    <div class="video-card" tabindex="0" onclick="${action}" style="background: ${channel.color}; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; gap: 8px;">
-                        <div style="font-size: 2.5rem;">${channel.icon}</div>
-                        <h2 style="color: white; font-size: 1.6rem; font-weight: 800; text-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align:center;">${channel.name}</h2>
-                        ${badge}
+                    <div class="video-card" tabindex="0" onclick="${action}" style="position:relative; overflow:hidden; height:200px;">
+                        <div style="position:absolute;inset:0; ${bgStyle}"></div>
+                        <div style="position:absolute;inset:0; background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);"></div>
+                        <div style="position:absolute;bottom:0;left:0;right:0;padding:15px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                            <h2 style="color:white;font-size:1.3rem;font-weight:800;text-shadow:0 2px 4px rgba(0,0,0,0.8);text-align:center;">${channel.name}</h2>
+                            ${badge}
+                        </div>
                     </div>
                 `;
             });
