@@ -5,460 +5,501 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f0f0f">
     <title>SmartTube - متصفح العائلة الآمن</title>
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
-    
     <style>
-        /* تصميم يحاكي تطبيقات التلفاز (نتفليكس / يوتيوب تي في) */
         :root {
-            --bg-color: #0f0f0f;
-            --text-color: #ffffff;
-            --accent-color: #ff0000;
+            --bg: #0f0f0f;
+            --card: #1a1a1a;
+            --accent: #e74c3c;
+            --text: #ffffff;
+            --sub: #aaaaaa;
+            --radius: 14px;
+            --transition: 0.2s ease;
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none; /* منع تحديد النصوص في الشاشات اللمسية */
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background: var(--bg);
+            color: var(--text);
             font-family: 'Tajawal', sans-serif;
             overflow-x: hidden;
-            /* منع السحب والتمرير المزعج على الآيباد */
-            -webkit-overflow-scrolling: touch; 
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* ===== HEADER ===== */
         header {
-            padding: 30px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 40px 16px;
             background: linear-gradient(to bottom, rgba(15,15,15,1) 0%, rgba(15,15,15,0) 100%);
             position: sticky;
             top: 0;
             z-index: 10;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        h1 { font-size: 2.2rem; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+        h1 span { color: var(--accent); }
+
+        #back-btn {
+            display: none;
+            padding: 10px 22px;
+            background: #2a2a2a;
+            color: var(--text);
+            border: 2px solid #444;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: var(--transition);
+        }
+        #back-btn:hover, #back-btn:focus {
+            background: var(--accent);
+            border-color: var(--accent);
+            outline: none;
         }
 
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        #reset-btn {
+            padding: 8px 18px;
+            background: transparent;
+            color: var(--sub);
+            border: 1px solid #444;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        #reset-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+        /* ===== STATUS BAR ===== */
+        #status-title {
+            padding: 4px 40px 16px;
+            font-size: 1.3rem;
+            color: var(--sub);
         }
 
-        h1 span {
-            color: var(--accent-color);
-        }
-
-        .channel-title {
-            padding: 0 40px;
-            font-size: 1.5rem;
-            color: #aaaaaa;
-            margin-bottom: 20px;
-        }
-
-        /* شبكة الفيديوهات (Grid) */
-        .video-grid {
+        /* ===== GRIDS ===== */
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 25px;
-            padding: 0 40px 60px 40px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 0 40px 60px;
         }
 
-        .video-card {
-            background: #222;
-            border-radius: 12px;
+        /* ===== CHANNEL CARDS ===== */
+        .ch-card {
+            position: relative;
+            height: 190px;
+            border-radius: var(--radius);
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
-            position: relative;
+            outline: 3px solid transparent;
+            transition: transform var(--transition), outline-color var(--transition), box-shadow var(--transition);
+            will-change: transform;
+            background: var(--card);
         }
-
-        /* تأثير التكبير عند تمرير الماوس أو الريموت */
-        .video-card:hover, .video-card:focus {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(255, 0, 0, 0.2);
-            z-index: 2;
-            outline: none; /* إخفاء إطار التركيز الافتراضي */
-            border: 3px solid var(--accent-color);
+        .ch-card:hover, .ch-card:focus {
+            transform: scale(1.04);
+            outline-color: var(--accent);
+            box-shadow: 0 8px 30px rgba(231,76,60,0.3);
         }
-
-        .thumbnail {
-            width: 100%;
-            aspect-ratio: 16 / 9;
+        .ch-card .bg {
+            position: absolute; inset: 0;
             background-size: cover;
             background-position: center;
-            background-color: #333; /* لون افتراضي قبل تحميل الصورة */
+            transition: transform 0.4s ease;
         }
-
-        .video-info {
-            padding: 15px;
+        .ch-card:hover .bg { transform: scale(1.06); }
+        .ch-card .overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 65%, transparent 100%);
         }
-
-        .video-title {
-            font-size: 1.1rem;
+        .ch-card .info {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 14px 16px;
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+        }
+        .ch-card h2 {
+            font-size: 1.2rem; font-weight: 800;
+            text-shadow: 0 2px 8px rgba(0,0,0,1);
+            text-align: center; color: white;
+        }
+        .badge {
+            font-size: 0.7rem;
+            padding: 3px 12px;
+            border-radius: 20px;
             font-weight: 700;
-            line-height: 1.4;
-            /* قص النص الطويل (3 أسطر كحد أقصى) */
+            color: white;
+        }
+        .badge-yt   { background: rgba(231,76,60,0.85); }
+        .badge-tg   { background: rgba(0,136,204,0.85); }
+        .badge-gd   { background: rgba(66,133,244,0.85); }
+
+        /* ===== VIDEO CARDS ===== */
+        .vid-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            outline: 3px solid transparent;
+            transition: transform var(--transition), outline-color var(--transition), box-shadow var(--transition);
+            will-change: transform;
+        }
+        .vid-card:hover, .vid-card:focus {
+            transform: scale(1.04);
+            outline-color: var(--accent);
+            box-shadow: 0 8px 30px rgba(231,76,60,0.25);
+        }
+        .vid-thumb {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background-size: cover;
+            background-position: center;
+            background-color: #2a2a2a;
+        }
+        .vid-info { padding: 12px 14px; }
+        .vid-title {
+            font-size: 1rem; font-weight: 700; line-height: 1.4;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        /* مشغل الفيديو المنبثق (Fullscreen Player) */
+        /* ===== SKELETON LOADER ===== */
+        .skeleton {
+            background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: var(--radius);
+            height: 190px;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        /* ===== PLAYER OVERLAY ===== */
         #player-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            position: fixed; inset: 0;
             background: #000;
-            z-index: 100;
+            z-index: 200;
             display: none;
             flex-direction: column;
         }
-
-        #player-container {
-            flex: 1;
-            width: 100%;
-            height: 100%;
-        }
+        #player-container { flex: 1; width: 100%; }
 
         #close-btn {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,0,0,0.8);
-            color: white;
-            border: none;
+            top: 18px; right: 18px;
+            background: rgba(231,76,60,0.85);
+            color: white; border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            z-index: 101;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.2s;
+            width: 52px; height: 52px;
+            font-size: 1.4rem;
+            cursor: pointer; z-index: 201;
+            display: flex; align-items: center; justify-content: center;
             font-weight: bold;
+            transition: background var(--transition), transform var(--transition);
         }
+        #close-btn:hover { background: var(--accent); transform: scale(1.1); }
 
-        #close-btn:hover {
-            background: red;
-            transform: scale(1.1);
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--sub);
+            font-size: 1.2rem;
+            line-height: 2;
         }
+        .empty-state button {
+            margin-top: 16px;
+            padding: 12px 28px;
+            background: var(--accent);
+            color: white; border: none;
+            border-radius: 10px;
+            font-size: 1rem; font-family: inherit;
+            cursor: pointer; font-weight: 700;
+            transition: opacity var(--transition);
+        }
+        .empty-state button:hover { opacity: 0.85; }
 
-        /* لضمان تناسب الشاشات المختلفة */
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
-            .video-grid {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-                padding: 0 20px 40px 20px;
-            }
-            header {
-                padding: 20px;
-            }
-            h1 {
-                font-size: 2rem;
-            }
+            header { padding: 16px 20px 12px; }
+            h1 { font-size: 1.7rem; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; padding: 0 20px 40px; }
+            #status-title { padding: 4px 20px 12px; font-size: 1.1rem; }
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1 id="main-title"><span>▶</span> SmartTube</h1>
-        <button id="back-btn" onclick="showChannelsView()" style="display:none; padding: 10px 20px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 1.1rem; font-weight: bold; margin-top: 15px;">🔙 العودة للقنوات</button>
-    </header>
-
-    <div class="channel-title" id="status-title">اختر القناة للمشاهدة</div>
-
-    <!-- شبكة القنوات -->
-    <div class="video-grid" id="channels-grid">
-        <!-- سيتم توليد كروت القنوات من الجافاسكريبت -->
+<header>
+    <h1><span>▶</span> SmartTube</h1>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button id="reset-btn" onclick="resetWatched()" title="إعادة تعيين المشاهدة">🔄 إعادة التعيين</button>
+        <button id="back-btn" onclick="showChannels()">🔙 القنوات</button>
     </div>
+</header>
 
-    <!-- شبكة الفيديوهات -->
-    <div class="video-grid" id="videos-grid" style="display:none;">
-        <!-- سيتم توليد الفيديوهات هنا -->
-    </div>
+<div id="status-title">اختر القناة للمشاهدة</div>
 
-    <!-- شاشة تشغيل الفيديو -->
-    <div id="player-overlay">
-        <button id="close-btn" onclick="closePlayer()">✕</button>
-        <div id="player-container"></div>
-    </div>
+<div class="grid" id="channels-grid"></div>
+<div class="grid" id="videos-grid" style="display:none;"></div>
 
-    <!-- شاشة عرض تيليجرام -->
-    <div id="telegram-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#17212b; z-index:100; flex-direction:column;">
-        <button onclick="closeTelegram()" style="position:absolute; top:20px; right:20px; background:rgba(0,136,204,0.9); color:white; border:none; border-radius:50%; width:55px; height:55px; font-size:1.5rem; cursor:pointer; z-index:101; font-weight:bold;">✕</button>
-        <iframe id="telegram-frame" src="" style="width:100%; height:100%; border:none;"></iframe>
-    </div>
+<div id="player-overlay">
+    <button id="close-btn" onclick="closePlayer()">✕</button>
+    <div id="player-container"></div>
+</div>
 
-    <!-- استدعاء مكتبة يوتيوب -->
-    <script src="https://www.youtube.com/iframe_api"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+'use strict';
 
-    <script>
-        // 💡💡 قائمة القنوات المسموحة - أضف أو احذف هنا 💡💡
-        const channels = [
-            { type: 'youtube', id: 'UCx9R02FLwmLOIr0ViM_M2Bw', name: 'عائلة مشيع' },
-            { type: 'youtube', id: 'UCr3XqrfFHRy25Dcrm7RVD0w', name: 'عمر وهنا - عربي' },
-            { type: 'youtube', id: 'UCu7WS26vJdvMwHajtXoijSQ', name: 'بليبي بالعربي' },
-            { type: 'youtube', id: 'UChOQ_YphUJTEczNXMrUoucg', name: 'تام تام' },
-            { type: 'youtube', id: 'UCoxoYSL3rFXB7JSELiI5V1w', name: 'فلاد ونيكي عربي' },
-            { type: 'youtube', id: 'UCWIdqSQekeGmUWlSFeCiEnA', name: 'أسرتنا' },
-            { type: 'youtube', id: 'UCO_NkEoZ0oJh19HJOVe72Sg', name: 'سبيستون' },
-            { type: 'telegram', id: 'Basem4aflamcartoooon', name: 'افلام ديزني بالعربي' },
-            { type: 'drive', id: '1DSVCdt0uMhq6HECmJl8EGNJVKz9rYJUP', name: 'مكتبة الأفلام 🎬', thumb: 'https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png' }
-        ];
-        
-        let currentVideos = [];
-        let player = null;
-        const channelAvatars = {};
+// ================================================================
+// 💡 قائمة القنوات — أضف أو احذف هنا بسهولة
+// ================================================================
+const CHANNELS = [
+    { type:'youtube', id:'UCx9R02FLwmLOIr0ViM_M2Bw', name:'عائلة مشيع' },
+    { type:'youtube', id:'UCr3XqrfFHRy25Dcrm7RVD0w', name:'عمر وهنا - عربي' },
+    { type:'youtube', id:'UCu7WS26vJdvMwHajtXoijSQ', name:'بليبي بالعربي' },
+    { type:'youtube', id:'UChOQ_YphUJTEczNXMrUoucg', name:'تام تام' },
+    { type:'youtube', id:'UCoxoYSL3rFXB7JSELiI5V1w', name:'فلاد ونيكي عربي' },
+    { type:'youtube', id:'UCWIdqSQekeGmUWlSFeCiEnA', name:'أسرتنا' },
+    { type:'youtube', id:'UCO_NkEoZ0oJh19HJOVe72Sg', name:'سبيستون' },
+    { type:'telegram', id:'Basem4aflamcartoooon',     name:'افلام ديزني بالعربي' },
+    { type:'drive',    id:'1DSVCdt0uMhq6HECmJl8EGNJVKz9rYJUP', name:'مكتبة الأفلام 🎬' }
+];
+const RSS_BASE  = 'https://www.youtube.com/feeds/videos.xml?channel_id=';
+const JSON_BASE = 'https://api.rss2json.com/v1/api.json?rss_url=';
+const THUMB_URL = id => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+const WATCHED_KEY = 'st_watched_v2';
 
-        // نظام تتبع الفيديوهات المشاهدة (يُحفظ في ذاكرة المتصفح)
-        function getWatched() {
-            return JSON.parse(localStorage.getItem('smarttube_watched') || '[]');
-        }
-        function markWatched(videoId) {
-            const watched = getWatched();
-            if (!watched.includes(videoId)) {
-                watched.push(videoId);
-                localStorage.setItem('smarttube_watched', JSON.stringify(watched));
+// ================================================================
+// DOM refs (cached once)
+// ================================================================
+const $channels  = document.getElementById('channels-grid');
+const $videos    = document.getElementById('videos-grid');
+const $status    = document.getElementById('status-title');
+const $backBtn   = document.getElementById('back-btn');
+const $overlay   = document.getElementById('player-overlay');
+
+// ================================================================
+// STATE
+// ================================================================
+let currentVideos = [];
+let currentIdx    = -1;
+let ytPlayer      = null;
+
+// ================================================================
+// WATCHED HELPERS (localStorage)
+// ================================================================
+const getWatched  = ()       => JSON.parse(localStorage.getItem(WATCHED_KEY) || '[]');
+const isWatched   = id       => getWatched().includes(id);
+const markWatched = id       => {
+    const w = getWatched();
+    if (!w.includes(id)) { w.push(id); localStorage.setItem(WATCHED_KEY, JSON.stringify(w)); }
+};
+function resetWatched() {
+    if (confirm('إعادة تعيين قائمة المشاهدة؟\nستعود جميع الفيديوهات للظهور من جديد.')) {
+        localStorage.removeItem(WATCHED_KEY);
+    }
+}
+
+// ================================================================
+// FETCH RSS
+// ================================================================
+async function fetchRSS(channelId) {
+    const url = JSON_BASE + encodeURIComponent(RSS_BASE + channelId);
+    const res = await fetch(url);
+    return res.json();
+}
+
+function extractId(item) {
+    if (item.guid && item.guid.includes('yt:video:')) return item.guid.split('yt:video:')[1];
+    const link = item.link || '';
+    if (link.includes('v=')) return link.split('v=')[1].split('&')[0];
+    if (link.includes('shorts/')) return link.split('shorts/')[1].split('?')[0];
+    return '';
+}
+
+// ================================================================
+// CHANNEL CARDS — skeleton then fill
+// ================================================================
+async function renderChannels() {
+    $channels.innerHTML = CHANNELS.map(() => `<div class="skeleton"></div>`).join('');
+    $channels.style.display = 'grid';
+    $videos.style.display   = 'none';
+    $backBtn.style.display  = 'none';
+    $status.textContent     = 'اختر القناة للمشاهدة';
+
+    // Fetch first video thumb for each YouTube channel in parallel
+    const thumbs = await Promise.all(CHANNELS.map(async ch => {
+        if (ch.type !== 'youtube') return null;
+        try {
+            const data = await fetchRSS(ch.id);
+            if (data.status === 'ok' && data.items?.length) {
+                return THUMB_URL(extractId(data.items[0]));
             }
+        } catch(_) {}
+        return null;
+    }));
+
+    $channels.innerHTML = CHANNELS.map((ch, i) => {
+        const thumb = thumbs[i];
+        const bgStyle = thumb
+            ? `background-image:url('${thumb}');background-size:cover;background-position:center;`
+            : ch.type === 'drive'    ? 'background:linear-gradient(135deg,#1a73e8,#0d47a1);'
+            : ch.type === 'telegram' ? 'background:linear-gradient(135deg,#0088cc,#005f8f);'
+            :                          'background:linear-gradient(135deg,#2c2c2c,#1a1a1a);';
+
+        const action = ch.type === 'telegram' ? `openTelegram('${ch.id}')`
+                     : ch.type === 'drive'    ? `openDrive('${ch.id}')`
+                     :                          `openChannel('${ch.id}','${ch.name}')`;
+
+        const badgeCls = ch.type === 'telegram' ? 'badge-tg'
+                       : ch.type === 'drive'    ? 'badge-gd'
+                       :                          'badge-yt';
+        const badgeTxt = ch.type === 'telegram' ? 'تيليجرام'
+                       : ch.type === 'drive'    ? 'Google Drive'
+                       :                          'يوتيوب';
+
+        return `
+        <div class="ch-card" tabindex="0" onclick="${action}" onkeydown="keyEnter(event,()=>${action})">
+            <div class="bg" style="${bgStyle}"></div>
+            <div class="overlay"></div>
+            <div class="info">
+                <h2>${ch.name}</h2>
+                <span class="badge ${badgeCls}">${badgeTxt}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ================================================================
+// OPEN CHANNEL → fetch & filter watched
+// ================================================================
+async function openChannel(id, name) {
+    $channels.style.display = 'none';
+    $videos.style.display   = 'grid';
+    $backBtn.style.display  = 'inline-block';
+    $status.textContent     = `⏳ جاري تحميل ${name}...`;
+    $videos.innerHTML       = Array(6).fill(`<div class="skeleton" style="height:220px;"></div>`).join('');
+
+    try {
+        const data = await fetchRSS(id);
+        if (data.status !== 'ok') throw new Error('bad status');
+
+        const watched = getWatched();
+        const all     = data.items.map(item => ({ id: extractId(item), title: item.title }));
+        currentVideos = all.filter(v => v.id && !watched.includes(v.id));
+
+        const skipped = all.length - currentVideos.length;
+        $status.textContent = `📺 ${name}` + (skipped ? ` • شاهدت ${skipped}` : '');
+
+        if (currentVideos.length === 0) {
+            $videos.innerHTML = `
+            <div class="empty-state">
+                🎉 شاهدت كل الفيديوهات المتاحة من هذه القناة!<br>
+                يمكنك إعادة التعيين لمشاهدتها مجدداً.
+                <br><button onclick="resetWatched();openChannel('${id}','${name}')">🔄 إعادة التعيين والتحميل</button>
+            </div>`;
+        } else {
+            renderVideos();
         }
-        function resetWatched() {
-            if (confirm('هل تريد إعادة تعيين قائمة المشاهدة؟ ستظهر كل الفيديوهات من جديد.')) {
-                localStorage.removeItem('smarttube_watched');
-                alert('✅ تم إعادة التعيين! افتح أي قناة لترى كل الفيديوهات.');
-            }
-        }
+    } catch(e) {
+        $status.textContent = '⚠️ تعذّر الاتصال. تحقق من الإنترنت.';
+        $videos.innerHTML   = '';
+    }
+}
 
-        const channelsGrid = document.getElementById('channels-grid');
-        const videosGrid = document.getElementById('videos-grid');
-        const statusTitle = document.getElementById('status-title');
-        const backBtn = document.getElementById('back-btn');
+function renderVideos() {
+    $videos.innerHTML = currentVideos.map((v, i) => `
+        <div class="vid-card" tabindex="0"
+             onclick="openPlayer('${v.id}')"
+             onkeydown="keyEnter(event,()=>openPlayer('${v.id}'))">
+            <div class="vid-thumb" style="background-image:url('https://img.youtube.com/vi/${v.id}/hqdefault.jpg');"></div>
+            <div class="vid-info"><div class="vid-title">${v.title}</div></div>
+        </div>`).join('');
+}
 
-        // 1. جلب صورة القناة
-        async function loadChannelAvatar(channel) {
-            if (channel.type === 'telegram' || channel.type === 'drive') {
-                return channel.thumb || null;
-            }
-            try {
-                const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.id}`;
-                const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-                const data = await fetch(apiUrl).then(r => r.json());
-                if (data.status === 'ok' && data.items && data.items[0]) {
-                    const firstVideoId = data.items[0].guid.split('yt:video:')[1];
-                    return `https://img.youtube.com/vi/${firstVideoId}/mqdefault.jpg`;
-                }
-            } catch(e) {}
-            return null;
-        }
+// ================================================================
+// PLAYER
+// ================================================================
+function openPlayer(videoId) {
+    currentIdx = currentVideos.findIndex(v => v.id === videoId);
+    markWatched(videoId);
+    $overlay.style.display = 'flex';
 
-        async function renderChannels() {
-            channelsGrid.innerHTML = '<div style="color:#aaa; padding:40px; font-size:1.2rem;">جاري تحميل القنوات...</div>';
-            
-            const avatarPromises = channels.map(ch => loadChannelAvatar(ch));
-            const avatars = await Promise.all(avatarPromises);
+    if (ytPlayer) {
+        ytPlayer.loadVideoById(videoId);
+    } else {
+        ytPlayer = new YT.Player('player-container', {
+            videoId,
+            playerVars: { autoplay:1, rel:0, modestbranding:1, fs:1, controls:1, playsinline:1 },
+            events: { onStateChange: onPlayerStateChange }
+        });
+    }
+}
 
-            let html = '';
-            channels.forEach((channel, i) => {
-                const avatar = avatars[i];
+function onPlayerStateChange(e) {
+    if (e.data === YT.PlayerState.ENDED) playNext();
+}
 
-                let action, badge, bgStyle;
+function playNext() {
+    const next = currentIdx + 1;
+    if (next < currentVideos.length) {
+        const v = currentVideos[next];
+        markWatched(v.id);
+        currentIdx = next;
+        ytPlayer.loadVideoById(v.id);
+    } else {
+        closePlayer();
+    }
+}
 
-                if (channel.type === 'telegram') {
-                    action = `openTelegram('${channel.id}')`;
-                    badge = '<span style="font-size:0.75rem;background:rgba(0,136,204,0.9);padding:4px 12px;border-radius:20px;color:white;font-weight:bold;">تيليجرام</span>';
-                } else if (channel.type === 'drive') {
-                    action = `openDrive('${channel.id}')`;
-                    badge = '<span style="font-size:0.75rem;background:rgba(66,133,244,0.9);padding:4px 12px;border-radius:20px;color:white;font-weight:bold;">Google Drive</span>';
-                } else {
-                    action = `openChannel('${channel.id}', '${channel.name}')`;
-                    badge = '<span style="font-size:0.75rem;background:rgba(255,0,0,0.8);padding:4px 12px;border-radius:20px;color:white;font-weight:bold;">يوتيوب</span>';
-                }
+function closePlayer() {
+    $overlay.style.display = 'none';
+    ytPlayer?.stopVideo();
+}
 
-                if (avatar && avatar.startsWith('http')) {
-                    bgStyle = `background-image: url('${avatar}'); background-size: cover; background-position: center;`;
-                } else if (channel.type === 'drive') {
-                    bgStyle = `background: linear-gradient(135deg, #1a73e8, #0d47a1);`;
-                } else if (channel.type === 'telegram') {
-                    bgStyle = `background: linear-gradient(135deg, #0088cc, #005f8f);`;
-                } else {
-                    bgStyle = `background: linear-gradient(135deg, #333, #555);`;
-                }
+// ================================================================
+// EXTERNAL CHANNELS
+// ================================================================
+const openTelegram = id => window.open(`https://t.me/s/${id}`, '_blank');
+const openDrive    = id => window.open(`https://drive.google.com/drive/folders/${id}`, '_blank');
 
-                html += `
-                    <div class="video-card" tabindex="0" onclick="${action}" style="position:relative; overflow:hidden; height:200px;">
-                        <div style="position:absolute;inset:0; ${bgStyle}"></div>
-                        <div style="position:absolute;inset:0; background:linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);"></div>
-                        <div style="position:absolute;bottom:0;left:0;right:0;padding:15px;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                            <h2 style="color:white;font-size:1.25rem;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,0.9);text-align:center;">${channel.name}</h2>
-                            ${badge}
-                        </div>
-                    </div>
-                `;
-            });
-            channelsGrid.innerHTML = html;
-        }
+// ================================================================
+// NAVIGATION — keyboard & TV remote
+// ================================================================
+function keyEnter(e, fn) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } }
 
-        // فتح قناة تيليجرام
-        function openTelegram(channelId) {
-            window.open(`https://t.me/s/${channelId}`, '_blank');
-        }
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' || e.key === 'Backspace') {
+        if ($overlay.style.display === 'flex') { closePlayer(); return; }
+        if ($videos.style.display !== 'none') { showChannels(); }
+    }
+});
 
-        // فتح مجلد Google Drive
-        function openDrive(folderId) {
-            window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
-        }
+function showChannels() {
+    $videos.style.display   = 'none';
+    $backBtn.style.display  = 'none';
+    $channels.style.display = 'grid';
+    $status.textContent     = 'اختر القناة للمشاهدة';
+}
 
-        function closeTelegram() {
-            const overlay = document.getElementById('telegram-overlay');
-            const frame = document.getElementById('telegram-frame');
-            overlay.style.display = 'none';
-            frame.src = '';
-        }
-
-        // 2. الدخول للقناة وسحب فيديوهاتها
-        async function openChannel(channelId, channelName) {
-            channelsGrid.style.display = 'none';
-            videosGrid.style.display = 'grid';
-            backBtn.style.display = 'block';
-            statusTitle.innerText = `جاري الاتصال بقناة ${channelName}...`;
-            videosGrid.innerHTML = '';
-
-            const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-
-            try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                
-                if (data.status === 'ok') {
-                    const watched = getWatched();
-                    const allVideos = data.items.map(item => {
-                        let videoId = "";
-                        if (item.guid && item.guid.includes('yt:video:')) {
-                            videoId = item.guid.split('yt:video:')[1];
-                        } else {
-                            const linkStr = item.link || "";
-                            if (linkStr.includes('v=')) videoId = linkStr.split('v=')[1];
-                            const amp = videoId.indexOf('&');
-                            if (amp !== -1) videoId = videoId.substring(0, amp);
-                        }
-                        return { id: videoId, title: item.title };
-                    });
-
-                    // استبعاد الفيديوهات المشاهدة مسبقاً
-                    currentVideos = allVideos.filter(v => !watched.includes(v.id));
-                    const watchedCount = allVideos.length - currentVideos.length;
-                    const suffix = watchedCount > 0 ? ` (شاهدت ${watchedCount} فيديو)` : '';
-                    statusTitle.innerText = `قناة: ${channelName}${suffix}`;
-
-                    if (currentVideos.length === 0) {
-                        videosGrid.innerHTML = `<div style="color:#aaa;padding:60px;font-size:1.3rem;text-align:center;">🎉 شاهدت كل الفيديوهات!<br><br><button onclick="resetWatched()" style="margin-top:20px;padding:12px 30px;background:#e74c3c;color:white;border:none;border-radius:10px;font-size:1rem;cursor:pointer;font-family:inherit;">🔄 إعادة تعيين القائمة</button></div>`;
-                    } else {
-                        renderVideos();
-                    }
-                } else {
-                    statusTitle.innerText = `عذراً، حدث خطأ أثناء الاتصال بالقناة.`;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                statusTitle.innerText = `تأكد من اتصالك بالإنترنت.`;
-            }
-        }
-
-        // 3. عرض فيديوهات القناة المختارة
-        function renderVideos() {
-            let html = '';
-            currentVideos.forEach(video => {
-                const thumbUrl = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
-                html += `
-                    <div class="video-card" tabindex="0" onclick="openPlayer('${video.id}')">
-                        <div class="thumbnail" style="background-image: url('${thumbUrl}');"></div>
-                        <div class="video-info">
-                            <div class="video-title">${video.title}</div>
-                        </div>
-                    </div>
-                `;
-            });
-            videosGrid.innerHTML = html;
-        }
-
-        // 4. زر العودة
-        function showChannelsView() {
-            videosGrid.style.display = 'none';
-            backBtn.style.display = 'none';
-            channelsGrid.style.display = 'grid';
-            statusTitle.innerText = 'اختر القناة للمشاهدة';
-        }
-
-        // 5. المشغل - مع تشغيل الفيديو التالي تلقائياً
-        let currentVideoIndex = -1;
-
-        function openPlayer(videoId) {
-            // نحدد موضع الفيديو في القائمة
-            currentVideoIndex = currentVideos.findIndex(v => v.id === videoId);
-            // نضيف الفيديو لقائمة المشاهدة فوراً
-            markWatched(videoId);
-            
-            const overlay = document.getElementById('player-overlay');
-            overlay.style.display = 'flex';
-
-            if (player) {
-                player.loadVideoById(videoId);
-            } else {
-                player = new YT.Player('player-container', {
-                    videoId: videoId,
-                    playerVars: {
-                        'autoplay': 1,      
-                        'rel': 0,           
-                        'modestbranding': 1,
-                        'fs': 1,            
-                        'controls': 1       
-                    },
-                    events: {
-                        'onStateChange': function(event) {
-                            // عند انتهاء الفيديو → شغّل الفيديو التالي تلقائياً
-                            if (event.data === YT.PlayerState.ENDED) {
-                                playNextVideo();
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        function playNextVideo() {
-            const nextIndex = currentVideoIndex + 1;
-            if (nextIndex < currentVideos.length) {
-                currentVideoIndex = nextIndex;
-                const nextVideo = currentVideos[nextIndex];
-                player.loadVideoById(nextVideo.id);
-            } else {
-                // وصلنا لآخر الفيديوهات → أغلق المشغل
-                closePlayer();
-            }
-        }
-
-        // 6. إغلاق المشغل
-        function closePlayer() {
-            const overlay = document.getElementById('player-overlay');
-            overlay.style.display = 'none';
-            if (player) {
-                player.stopVideo();
-            }
-        }
-
-        // بدء الرسم فور تحميل الصفحة
-        renderChannels();
-
-    </script>
+// ================================================================
+// INIT
+// ================================================================
+renderChannels();
+</script>
 </body>
 </html>
